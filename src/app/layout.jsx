@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] })
 const geist = localFont({
   src: [
     {
-      path: './path-to-your-fonts/Geist-Regular.woff2',
+      path: '../../public/fonts/Geist-Regular.woff2',
       weight: '400',
       style: 'normal',
     },
