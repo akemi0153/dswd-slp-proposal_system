@@ -1,40 +1,42 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { initializeApp, cert, getApps } from "firebase-admin/app"
 
-const firebaseAdminConfig = {
-  credential: cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  }),
-};
+// Check for required environment variables first
+const requiredEnvVars = ["FIREBASE_PROJECT_ID", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PRIVATE_KEY"]
 
-// Validate required environment variables
-const requiredEnvVars = {
-  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
-  FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
-};
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName])
 
-const missingEnvVars = Object.entries(requiredEnvVars)
-  .filter(([_, value]) => !value)
-  .map(([key]) => key);
+if (missingVars.length > 0) {
+  console.error(`Missing required Firebase environment variables: ${missingVars.join(", ")}`)
 
-if (missingEnvVars.length > 0) {
+  // Add environment variables to your project
   throw new Error(
-    `Missing required Firebase Admin SDK configuration. Missing environment variables: ${missingEnvVars.join(
-      ", "
-    )}. Please check your environment variables.`
-  );
+    `Missing required Firebase Admin SDK configuration: ${missingVars.join(", ")}. Please add these environment variables in your Vercel project settings.`,
+  )
 }
 
-// Initialize Firebase Admin if it hasn't been initialized
-if (!getApps().length) {
+// Initialize Firebase Admin SDK
+const getFirebaseApp = () => {
+  if (getApps().length > 0) {
+    return getApps()[0]
+  }
+
   try {
-    initializeApp(firebaseAdminConfig);
+    // Properly format the private key - it might be stored with escaped newlines
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n")
+
+    return initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey,
+      }),
+    })
   } catch (error) {
-    console.error("Failed to initialize Firebase Admin SDK:", error);
-    throw new Error("Failed to initialize Firebase Admin SDK: " + error.message);
+    console.error("Error initializing Firebase Admin SDK:", error)
+    throw new Error(`Failed to initialize Firebase Admin SDK: ${error.message}`)
   }
 }
 
-export default getApps()[0];
+// Export the initialized app
+const firebaseApp = getFirebaseApp()
+export default firebaseApp
